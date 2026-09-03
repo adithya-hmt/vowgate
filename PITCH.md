@@ -36,7 +36,7 @@ Complete the test payment.
 
 ## 2:30–3:00 — Trust boundary and honest close
 
-“The model never authorizes checkout. Product descriptions never prove compliance. Vowgate trusts its backend, signing key, deterministic policy, configured structured catalog facts, and Razorpay's verified signature. Today the atomic state store is process-local, so production Vercel deployment still needs Redis or a transactional database for global replay guarantees.”
+“The model never authorizes checkout. Product descriptions never prove compliance. Vowgate trusts its backend, signing key, deterministic policy, configured structured catalog facts, and Razorpay's verified signature. Upstash Redis Free makes the single-use transition atomic across Vercel instances, with TTL fixed to the signed mandate expiry.”
 
 End with:
 

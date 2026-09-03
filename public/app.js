@@ -30,6 +30,7 @@ const elements = {
 
 let authorizationReview;
 let openMandate;
+let authorizedOrder;
 let scenarioAuthorized = false;
 let checkoutScript;
 
@@ -40,7 +41,9 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || payload.detail || `Request failed with ${response.status}`);
+  if (!response.ok) {
+    throw Object.assign(new Error(payload.error || payload.detail || `Request failed with ${response.status}`), { payload });
+  }
   return payload;
 }
 
@@ -172,7 +175,7 @@ function openCheckout(order) {
             evidence: order.evidence,
           },
         });
-        elements.trace.append(traceStep({ stage: "PAYMENT VERIFICATION", status: "verified", detail: "Razorpay signature matched server-side. ORDER_CREATED → PAYMENT_VERIFIED." }));
+        elements.trace.append(traceStep({ stage: "PAYMENT_VERIFIED", status: "verified", detail: "Razorpay signature matched server-side. ORDER_CREATED → PAYMENT_VERIFIED." }));
         elements.traceCode.textContent = payment.code;
         elements.traceCode.style.color = "var(--green)";
         elements.paymentStage.textContent = "VERIFIED PAYMENT";
@@ -251,6 +254,7 @@ $$(".scenario-row").forEach((row) => row.addEventListener("click", async () => {
 elements.intentText.addEventListener("input", () => {
   authorizationReview = undefined;
   openMandate = undefined;
+  authorizedOrder = undefined;
   elements.intentButton.disabled = false;
   elements.intentButton.textContent = "NORMALIZE FOR REVIEW";
   elements.mandateStatus.textContent = "NOT ACTIVE";
@@ -284,6 +288,7 @@ elements.intentButton.addEventListener("click", async () => {
   setBusy(elements.intentButton, true, authorizationReview ? "ACTIVATING MANDATE…" : "NORMALIZING…");
   try {
     if (!authorizationReview) {
+      authorizedOrder = undefined;
       const response = await api("/api/intent", { method: "POST", body: { text: elements.intentText.value } });
       authorizationReview = response.authorizationReview;
       showAuthorizationReview(authorizationReview);
@@ -318,12 +323,14 @@ elements.intentButton.addEventListener("click", async () => {
 elements.orderButton.addEventListener("click", async () => {
   setBusy(elements.orderButton, true, "AUTHORIZING…");
   try {
-    const order = await api("/api/order", { method: "POST", body: { openMandate } });
-    elements.trace.replaceChildren(...order.authorizationTrace.map(traceStep));
-    elements.trace.append(traceStep({ stage: "MANDATE STATE", status: "verified", detail: `RESERVED → ORDER_CREATED · checkout ${order.checkoutFingerprint}….` }, order.authorizationTrace.length));
-    elements.traceCode.textContent = order.mandateState;
-    elements.traceCode.style.color = "var(--green)";
-    elements.orderId.textContent = `${order.id} · ₹${(order.amount / 100).toLocaleString("en-IN")} · ${order.status}`;
+    const order = authorizedOrder || await api("/api/order", { method: "POST", body: { openMandate } });
+    if (!authorizedOrder) {
+      authorizedOrder = order;
+      elements.trace.replaceChildren(...order.authorizationTrace.map(traceStep));
+      elements.traceCode.textContent = order.mandateState;
+      elements.traceCode.style.color = "var(--green)";
+      elements.orderId.textContent = `${order.id} · ₹${(order.amount / 100).toLocaleString("en-IN")} · ${order.status}`;
+    }
 
     if (!order.checkoutKey) {
       elements.paymentStage.textContent = "ORDER CREATED";
@@ -341,11 +348,16 @@ elements.orderButton.addEventListener("click", async () => {
     elements.orderButton.textContent = "CHECKOUT OPEN";
     openCheckout(order);
   } catch (error) {
+    const code = error.payload?.code || (authorizedOrder ? "CHECKOUT_CLIENT_UNAVAILABLE" : "ORDER_CREATION_FAILED");
+    if (error.payload?.trace) elements.trace.replaceChildren(...error.payload.trace.map(traceStep));
+    elements.traceCode.textContent = code;
+    elements.traceCode.style.color = "var(--red)";
     elements.paymentStage.textContent = "CHECKOUT REFUSED";
-    elements.orderState.textContent = "ORDER CREATION FAILED";
+    elements.orderState.textContent = code;
     elements.orderId.textContent = error.message;
-    elements.orderButton.textContent = "RETRY CHECKOUT";
-    elements.orderButton.disabled = false;
+    const retryable = code === "ORDER_CREATION_FAILED" || code === "CHECKOUT_CLIENT_UNAVAILABLE";
+    elements.orderButton.textContent = retryable ? "RETRY CHECKOUT" : "RAZORPAY ORDER NOT CREATED";
+    elements.orderButton.disabled = !retryable;
   } finally {
     elements.orderButton.setAttribute("aria-busy", "false");
   }

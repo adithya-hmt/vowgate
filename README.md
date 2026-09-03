@@ -60,17 +60,18 @@ Typed catalog data is not inherently truthful: Vowgate trusts the configured cat
 
 ### Mandate state
 
-The demo uses an explicit state machine:
+Production uses Upstash Redis Free through its serverless REST API. Lua scripts atomically enforce:
 
 ```text
 ISSUED -> RESERVED -> ORDER_CREATED -> PAYMENT_VERIFIED
              |
-             +-> ISSUED only if order creation fails before an order exists
+             +-> ISSUED only after a definitive pre-order failure
+             +-> ORDER_CREATION_AMBIGUOUS when an order may exist
 ```
 
-The synchronous compare-and-set transition is atomic inside one Node process. In-flight order creation is also deduplicated by Payment Mandate. Checkout abandonment keeps the established Razorpay order reusable instead of creating another order.
+Every state record stores only the mandate ID, checkout hash, state, Razorpay order ID, and transition timestamps. Redis expiration is fixed to the signed Payment Mandate expiry and cannot extend authorization. Checkout abandonment keeps the established order bound instead of creating another.
 
-**Important limitation:** these states and webhook event claims are currently process-local. Signed order evidence allows payment verification across stateless Vercel invocations, but production-grade global replay protection requires atomic Redis or database transitions.
+Local development and unit tests use an in-memory adapter with the same asynchronous compare-and-transition interface. Vercel and `NODE_ENV=production` fail closed when persistent state is not configured. Webhook event claims remain process-local because this pass changes only payment-mandate/order state.
 
 ## Run
 
@@ -105,7 +106,17 @@ Without Gemini, only the exact published demo instruction is accepted and arbitr
 
 Live demo: [vowgate.vercel.app](https://vowgate.vercel.app)
 
-Vercel serves `public/` and routes `/api/*` to one Node Function. Configure `MANDATE_SIGNING_SECRET`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` as Production secrets. Never expose the HMAC or Razorpay secret to the browser.
+Vercel serves `public/` and routes `/api/*` to one Node Function. Configure these Production secrets:
+
+```text
+MANDATE_SIGNING_SECRET
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+```
+
+Upstash Redis Free is sufficient for the buildathon workload. Never expose Redis, HMAC, or Razorpay secrets to the browser.
 
 The same service includes a production container:
 

@@ -94,15 +94,20 @@ Vowgate does not prove that typed merchant data is truthful. A compromised Vowga
 
 ## Replay and failure behavior
 
-The in-memory compare-and-set state machine is:
+Production uses Upstash Redis Free; local development uses an in-memory adapter with the same interface:
 
 ```text
 ISSUED -> RESERVED -> ORDER_CREATED -> PAYMENT_VERIFIED
+             |
+             +-> ISSUED                    definitive rejection, no order
+             +-> ORDER_CREATION_AMBIGUOUS  network/parse outcome uncertain
 ```
 
-Reservation occurs synchronously before the Razorpay adapter can run, so concurrent requests inside one process cannot both gain order-creation permission. A failed order-creation call returns `RESERVED` to `ISSUED`; once an order exists, abandonment does not release the mandate and the idempotency record returns the same order.
+Creation and every compare-and-transition run as one Redis Lua script. The script verifies current state, checkout hash, and—when relevant—the bound Razorpay order ID before writing. The critical `ISSUED → RESERVED` transition occurs before the Razorpay adapter, so requests on separate Vercel instances cannot both gain order-creation permission.
 
-The current store is invocation-local. Production needs atomic conditional transitions in Redis or a transactional database to guarantee uniqueness across Vercel instances. Signed order evidence allows callback verification on another invocation but does not replace durable replay state.
+State contains mandate ID, checkout hash, state, Razorpay order ID, and audit timestamps only. Each Lua write reapplies `PEXPIREAT` using the original signed Payment Mandate expiry stored in the record; transitions cannot extend TTL. Cryptographic expiry is still independently checked before state access.
+
+An HTTP rejection from Razorpay is treated as definitive and atomically recovers `RESERVED → ISSUED`. A network, CLI, response-parse, response-mismatch, or post-order persistence failure is ambiguous: authority remains unavailable and requires reconciliation. Checkout abandonment keeps `ORDER_CREATED`, allowing the same established order to reopen without authorizing another.
 
 ## Razorpay boundary
 

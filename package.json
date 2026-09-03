@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node local.js",
     "test": "node --test",
-    "check": "node --check local.js && node --check lib/http.js && node --check public/app.js && node --test"
+    "check": "node --check local.js && node --check lib/http.js && node --check lib/mandate-state.js && node --check lib/order.js && node --check public/app.js && node --test"
   },
   "engines": {
     "node": "24.x"

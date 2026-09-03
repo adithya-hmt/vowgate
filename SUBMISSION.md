@@ -50,11 +50,11 @@ With direct `rzp_test_` credentials, Vowgate creates a Razorpay Order only after
 
 The Vowgate backend, HMAC key, deterministic policy, and configured structured catalog authority form the trusted computing base. LLM output, agent reasoning, browser state, client checkout claims, and all free-form merchant content are untrusted. Typed catalog facts are trusted configuration, not independently proven truth.
 
-The current compare-and-set mandate state and webhook event ledger are process-local. They prove the state-machine design and same-process concurrency behavior; production serverless replay protection requires an atomic Redis or transactional database. The demo proves delegated shopping/checkout authorization plus server-side payment verification—not autonomous unattended fund movement or legal customer identity.
+Payment Mandate state is persisted in Upstash Redis Free. Atomic Lua transitions and signed-expiry TTLs prevent separate Vercel instances from granting the same mandate twice. Definitive pre-order failures recover the reservation; ambiguous outcomes remain blocked for reconciliation. Webhook event claims remain process-local. The demo proves delegated shopping/checkout authorization plus server-side payment verification—not autonomous unattended fund movement or legal customer identity.
 
 ## What broke and how it recovered
 
-The first concept duplicated existing failed-payment recovery capabilities, so the project pivoted to the unresolved authorization boundary. The replacement then exposed duplicate-order risk. Vowgate first deduplicated in-flight creation and now reserves a signed Payment Mandate atomically before calling Razorpay, releases only pre-order failures, and retains established orders after Checkout abandonment.
+The first concept duplicated existing failed-payment recovery capabilities, so the project pivoted to the unresolved authorization boundary. The replacement then exposed duplicate-order risk. Vowgate now reserves a signed Payment Mandate through atomic persistent compare-and-transition before calling Razorpay, releases only definitive pre-order failures, and retains established or ambiguous outcomes instead of risking a second order.
 
 ## Links
 
