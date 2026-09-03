@@ -60,16 +60,11 @@ docker run --rm -p 3000:3000 --env-file .env vowgate
 
 Health check: `GET /api/health`.
 
-## Architecture and evidence
+## Submission
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — trust boundary and request flow
-- [`CONTEXT.md`](CONTEXT.md) — domain language and invariants
-- [`PLAN.md`](PLAN.md) — build thesis and measured bar
-- [`DESIGN.md`](DESIGN.md) — interface system and brand boundary
-- [`SUBMISSION.md`](SUBMISSION.md) — ready-to-paste buildathon submission
+- [`SUBMISSION.md`](SUBMISSION.md) — buildathon submission
 - [`PITCH.md`](PITCH.md) — five-minute demo script
-
-![Vowgate brand kit](docs/vowgate-brandkit.png)
 
 ## Honesty boundary
 
