@@ -29,7 +29,7 @@ Vowgate separates interpretation from authorization:
 - 6/6 conformance scenarios behave as expected.
 - Five adversarial purchase attempts are blocked.
 - Zero unsafe attempts reach order creation.
-- The valid path created Razorpay test order `order_TXdEqoqMlLdTyq` through the authenticated Razorpay CLI.
+- The valid path created Razorpay test order `order_TXeHbWLiMKkDPK` through the direct Test API.
 - Two requests for the same Payment Mandate both resolved to that one order.
 
 ## AI usage
