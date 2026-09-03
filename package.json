@@ -1,0 +1,16 @@
+{
+  "name": "vowgate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The mandate firewall for agentic commerce", 
+  "author": "Adithya S",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check public/app.js && node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

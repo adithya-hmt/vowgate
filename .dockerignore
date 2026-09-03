@@ -1,0 +1,8 @@
+.env
+.git
+.firecrawl
+.impeccable
+node_modules
+npm-debug.log
+Dockerfile*
+README.md

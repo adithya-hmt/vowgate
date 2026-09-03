@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .display{font-family:Manrope,Arial,sans-serif;font-weight:700;letter-spacing:-2px}.body{font-family:Inter,Arial,sans-serif}.label{font-family:Inter,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:2px}.muted{fill:#71809a}.white{fill:#fff}.navy{fill:#192839}.blue{fill:#305eff}
+    </style>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" result="noise"/><feColorMatrix in="noise" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .05 0"/></filter>
+    <symbol id="mark" viewBox="0 0 48 48">
+      <path d="M24 4C13 4 5 12 5 24s8 20 19 20c7 0 13-3 17-8l-8-6c-2 3-5 5-9 5-6 0-10-5-10-11s4-11 10-11c4 0 7 2 9 5l8-6C37 7 31 4 24 4Z" fill="#305eff"/>
+      <path d="M24 14c-6 0-10 4-10 10s4 10 10 10c3 0 6-1 8-4l-5-4c-1 1-2 2-3 2-2 0-4-2-4-4s2-4 4-4c1 0 2 1 3 2l5-4c-2-3-5-4-8-4Z" fill="#fff"/>
+      <path d="m24 24 6 6 12-14" fill="none" stroke="#192839" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <linearGradient id="atmosphere" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#305eff"/><stop offset="1" stop-color="#92c8ff"/></linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="#0d1421"/>
+
+  <!-- cover -->
+  <g transform="translate(28 28)">
+    <rect width="1018" height="300" rx="4" fill="#fff"/>
+    <use href="#mark" x="54" y="52" width="68" height="68"/>
+    <text x="138" y="100" class="display navy" font-size="43">Vow<tspan fill="#305eff">gate</tspan></text>
+    <text x="54" y="216" class="display navy" font-size="62">The mandate firewall</text>
+    <text x="54" y="275" class="display blue" font-size="62">for agentic commerce.</text>
+    <text x="940" y="274" text-anchor="end" class="label muted">IDENTITY 01 / 09</text>
+  </g>
+
+  <!-- construction -->
+  <g transform="translate(1060 28)">
+    <rect width="512" height="300" rx="4" fill="#eef3ff"/>
+    <path d="M114 65h220M114 112h220M114 159h220M114 206h220M161 40v220M208 40v220M255 40v220M302 40v220" stroke="#b9c8ef" stroke-width="1"/>
+    <circle cx="234" cy="145" r="92" fill="none" stroke="#9cb2ec"/>
+    <use href="#mark" x="164" y="75" width="140" height="140"/>
+    <text x="32" y="270" class="label navy">BOUNDARY + PROOF</text>
+    <text x="480" y="270" text-anchor="end" class="label muted">02 / 09</text>
+  </g>
+
+  <!-- browser application -->
+  <g transform="translate(28 342)">
+    <rect width="688" height="300" rx="4" fill="#eff4ff"/>
+    <rect x="36" y="32" width="616" height="236" rx="10" fill="#fff" stroke="#cbd8f0"/>
+    <rect x="36" y="32" width="616" height="34" rx="10" fill="#f7f9fd"/>
+    <circle cx="56" cy="49" r="4" fill="#ff6b65"/><circle cx="71" cy="49" r="4" fill="#f3bd46"/><circle cx="86" cy="49" r="4" fill="#51b67b"/>
+    <use href="#mark" x="55" y="83" width="32" height="32"/>
+    <text x="96" y="106" class="display navy" font-size="21">Vow<tspan fill="#305eff">gate</tspan></text>
+    <text x="56" y="164" class="display navy" font-size="35">The mandate decides.</text>
+    <rect x="56" y="188" width="254" height="48" rx="4" fill="#305eff"/>
+    <text x="78" y="218" class="body white" font-size="14" font-weight="700">RUN PRESSURE SUITE</text>
+    <path d="m287 205 10 7-10 7" fill="#fff"/>
+    <rect x="372" y="91" width="242" height="145" rx="7" fill="#edf2ff" stroke="#c7d4f0"/>
+    <path d="M394 128h198M394 161h198M394 194h198" stroke="#b7c6e6"/>
+    <circle cx="407" cy="128" r="6" fill="#13865d"/><circle cx="407" cy="161" r="6" fill="#13865d"/><circle cx="407" cy="194" r="6" fill="#b82f49"/>
+    <text x="36" y="287" class="label white">DIGITAL APPLICATION</text>
+  </g>
+
+  <!-- promise -->
+  <g transform="translate(730 342)">
+    <rect width="316" height="300" rx="4" fill="#305eff"/>
+    <text x="28" y="54" class="label white">THE PROMISE</text>
+    <text x="28" y="135" class="display white" font-size="44">AI may</text>
+    <text x="28" y="179" class="display white" font-size="44">choose.</text>
+    <text x="28" y="233" class="display white" font-size="44">Policy</text>
+    <text x="28" y="277" class="display white" font-size="44">authorizes.</text>
+  </g>
+
+  <!-- palette -->
+  <g transform="translate(1060 342)">
+    <rect width="512" height="300" rx="4" fill="#fff"/>
+    <text x="28" y="47" class="label navy">SIGNAL PALETTE</text>
+    <rect x="28" y="79" width="112" height="154" rx="3" fill="#305eff"/><rect x="145" y="79" width="112" height="154" rx="3" fill="#192839"/><rect x="262" y="79" width="105" height="154" rx="3" fill="#eef3ff"/><rect x="372" y="79" width="52" height="154" rx="3" fill="#13865d"/><rect x="429" y="79" width="52" height="154" rx="3" fill="#b82f49"/>
+    <text x="28" y="260" class="body navy" font-size="12">TRUST / DEPTH / FIELD / PASS / STOP</text>
+    <text x="480" y="278" text-anchor="end" class="label muted">05 / 09</text>
+  </g>
+
+  <!-- typography -->
+  <g transform="translate(28 656)">
+    <rect width="512" height="316" rx="4" fill="#fff"/>
+    <text x="30" y="47" class="label muted">TYPE SYSTEM</text>
+    <text x="30" y="133" class="display navy" font-size="76">Aa</text>
+    <text x="162" y="103" class="display navy" font-size="31">Manrope</text>
+    <text x="162" y="134" class="body muted" font-size="15">Clear, direct, assured.</text>
+    <path d="M30 168h452" stroke="#d9e1ee"/>
+    <text x="30" y="221" class="body navy" font-size="25" font-weight="600">Inter carries the evidence.</text>
+    <text x="30" y="260" class="body muted" font-size="14">Signature · Catalog · Checkout · Payment</text>
+    <text x="480" y="292" text-anchor="end" class="label muted">06 / 09</text>
+  </g>
+
+  <!-- receipt -->
+  <g transform="translate(554 656)">
+    <rect width="316" height="316" rx="4" fill="#e8efff"/>
+    <g transform="rotate(-6 158 158)"><rect x="66" y="34" width="184" height="244" rx="4" fill="#fff" stroke="#cbd8f0"/><use href="#mark" x="86" y="57" width="28" height="28"/><text x="122" y="78" class="display navy" font-size="16">Vow<tspan fill="#305eff">gate</tspan></text><path d="M86 105h144M86 135h144M86 165h144M86 195h144" stroke="#dce4f2"/><circle cx="101" cy="225" r="12" fill="#e7f7ef"/><path d="m95 225 4 4 8-9" fill="none" stroke="#13865d" stroke-width="2"/><text x="121" y="229" class="body navy" font-size="11">MANDATE VERIFIED</text><text x="86" y="255" class="label muted">SINGLE USE / ₹2,499</text></g>
+    <text x="26" y="294" class="label navy">PROOF RECEIPT</text>
+  </g>
+
+  <!-- atmosphere -->
+  <g transform="translate(884 656)">
+    <rect width="370" height="316" rx="4" fill="url(#atmosphere)"/>
+    <path d="M0 248 105 92l78 89L252 58l118 145v113H0z" fill="#192839" opacity=".92"/>
+    <path d="M0 272 96 173l70 44 97-102 107 126v75H0z" fill="#fff" opacity=".18"/>
+    <circle cx="278" cy="75" r="35" fill="#d9ff70"/>
+    <text x="24" y="44" class="label white">CONFIDENCE NEEDS PROOF</text>
+    <text x="346" y="294" text-anchor="end" class="label white">08 / 09</text>
+  </g>
+
+  <!-- detail -->
+  <g transform="translate(1268 656)">
+    <rect width="304" height="316" rx="4" fill="#192839"/>
+    <text x="26" y="45" class="label white">SYSTEM STATES</text>
+    <rect x="26" y="76" width="252" height="46" rx="4" fill="#305eff"/><text x="44" y="104" class="body white" font-size="13" font-weight="700">RUN PRESSURE SUITE</text>
+    <rect x="26" y="137" width="116" height="38" rx="3" fill="#e7f7ef" stroke="#72c6a1"/><text x="49" y="161" class="label" fill="#075c3c">VERIFIED</text>
+    <rect x="158" y="137" width="120" height="38" rx="3" fill="#fff0f2" stroke="#efacb9"/><text x="183" y="161" class="label" fill="#8b1f36">BLOCKED</text>
+    <path d="M31 219h242" stroke="#53647a"/><circle cx="68" cy="219" r="7" fill="#13865d"/><circle cx="152" cy="219" r="7" fill="#13865d"/><circle cx="236" cy="219" r="7" fill="#b82f49"/>
+    <text x="26" y="270" class="body white" font-size="12">Visible state. Explicit reason.</text>
+    <text x="278" y="294" text-anchor="end" class="label muted">09 / 09</text>
+  </g>
+
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".28" pointer-events="none"/>
+</svg>
