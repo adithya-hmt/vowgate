@@ -147,7 +147,7 @@ function openCheckout(order) {
     order_id: order.id,
     name: "Nightswitch Supply",
     description: "Vowgate-authorized test purchase",
-    theme: { color: "#305eff" },
+    theme: { color: "#315bff" },
     handler: async (response) => {
       settled = true;
       elements.paymentStage.textContent = "PAYMENT RETURNED";
@@ -302,5 +302,15 @@ elements.orderButton.addEventListener("click", async () => {
     elements.orderButton.setAttribute("aria-busy", "false");
   }
 });
+
+if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.filter((entry) => entry.isIntersecting).forEach((entry) => {
+      entry.target.classList.add("revealed");
+      revealObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.12 });
+  $$('[data-reveal]').forEach((element) => revealObserver.observe(element));
+}
 
 loadState();

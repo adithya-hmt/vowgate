@@ -6,7 +6,7 @@ An individual Razorpay AI Buildathon 2026 submission by **Adithya S** for Track 
 
 Vowgate turns customer intent into signed purchase authority, pressure-tests every checkout mutation, and opens Razorpay test Checkout only after deterministic policy gates pass.
 
-![Vowgate product](docs/vowgate-product.png)
+![Vowgate product](public/vowgate-product.png)
 
 ## Why it matters
 
