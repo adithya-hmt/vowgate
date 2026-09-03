@@ -53,7 +53,11 @@ Expected result: **6/6 conformant, five threats stopped, zero unsafe payments, a
 
 ## Deploy
 
-The server has no runtime dependencies and includes a production container:
+Live demo: [vowgate.vercel.app](https://vowgate.vercel.app)
+
+Vercel serves `public/` and routes `/api/*` to one Node Function. Configure `MANDATE_SIGNING_SECRET`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` as Production secrets. Signed order evidence keeps payment verification valid across stateless invocations; production-grade replay protection still requires Marketplace Redis or a database.
+
+The same service also includes a production container:
 
 ```bash
 docker build -t vowgate .

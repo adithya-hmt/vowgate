@@ -5,12 +5,14 @@ import {
   baseCatalog,
   chooseProduct,
   createOpenMandate,
+  createOrderEvidence,
   demoIntent,
   RedemptionLedger,
   runMandate,
   runScenario,
   runSuite,
   verifyOpenMandate,
+  verifyOrderEvidence,
 } from "../lib/vowgate.js";
 import { interpretIntent } from "../lib/intent.js";
 import {
@@ -32,6 +34,15 @@ test("signs and verifies an open checkout mandate", () => {
   assert.equal(verifyOpenMandate(mandate, "test"), true);
   mandate.constraints.maxAmount += 1;
   assert.equal(verifyOpenMandate(mandate, "test"), false);
+});
+
+test("signs stateless order evidence for serverless payment verification", () => {
+  const order = { id: "order_test", amount: 249900, currency: "INR", mode: "razorpay-test" };
+  const mandate = { id: "payment_test", expiresAt: now + 60_000 };
+  const evidence = createOrderEvidence(order, mandate, "test");
+  assert.equal(verifyOrderEvidence(evidence, "test"), true);
+  evidence.amount += 1;
+  assert.equal(verifyOrderEvidence(evidence, "test"), false);
 });
 
 test("passes a valid purchase and blocks every adversarial scenario", () => {

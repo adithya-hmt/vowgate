@@ -162,6 +162,7 @@ function openCheckout(order) {
             orderId: order.id,
             paymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature,
+            evidence: order.evidence,
           },
         });
         elements.trace.append(traceStep({ stage: "RAZORPAY", status: "verified", detail: "Checkout signature matched the authorized test order." }));

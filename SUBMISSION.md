@@ -52,6 +52,7 @@ The Payment Mandate replay scenario consumes a single-use mandate, presents it a
 
 ## Links
 
+- Live demo: https://vowgate.vercel.app
 - Repository: https://github.com/adithya-hmt/vowgate
 - Run locally: `npm test && npm start`
 - Health check: `GET /api/health`

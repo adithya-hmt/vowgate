@@ -32,6 +32,9 @@ Idempotent Razorpay test order adapter
 Razorpay Standard Checkout
       │
       ▼
+Signed order evidence crosses stateless function boundary
+      │
+      ▼
 Server-side callback signature verification
       │
       ▼
@@ -45,5 +48,5 @@ The model translates natural language into a schema. It cannot create orders or 
 ## Deliberate simplifications
 
 - Mandates are AP2-inspired local objects rather than standards-compliant Verifiable Digital Credentials.
-- Mandate and webhook deduplication state is in memory for the demo. A production version needs durable atomic consumption with a unique database constraint.
+- Order evidence is signed so payment verification survives stateless Vercel invocations. Mandate and webhook deduplication remain in memory for the demo; production needs a Marketplace Redis or database with atomic uniqueness.
 - The synthetic catalog uses one merchant and three products because one complete, inspectable flow is the submission target.

@@ -6,11 +6,11 @@
   "author": "Adithya S",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node local.js",
     "test": "node --test",
-    "check": "node --check server.js && node --check public/app.js && node --test"
+    "check": "node --check local.js && node --check lib/http.js && node --check public/app.js && node --test"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   }
 }
