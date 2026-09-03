@@ -27,12 +27,20 @@ Consumed Payment Mandate
       │
       ▼
 Idempotent Razorpay test order adapter
-  API credentials or authenticated CLI
+      │                    └── authenticated CLI fallback ends at order
+      ▼
+Razorpay Standard Checkout
+      │
+      ▼
+Server-side callback signature verification
+      │
+      ▼
+Verified result in Transaction Trace
 ```
 
 ## Trust boundary
 
-The model translates natural language into a schema. It cannot create orders or bypass policy. Money eligibility is decided by deterministic checks over signed intent, typed catalog evidence, checkout hashes, and a single-use redemption ledger.
+The model translates natural language into a schema. It cannot create orders or bypass policy. Money eligibility is decided by deterministic checks over signed intent, typed catalog evidence, checkout hashes, and a single-use redemption ledger. The browser receives only the public Razorpay test key; the secret remains server-side for order creation and callback signature verification.
 
 ## Deliberate simplifications
 

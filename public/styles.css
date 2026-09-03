@@ -27,7 +27,7 @@
   --red-soft: #fff0f2;
   --focus: #1738c6;
   --font-display: "Manrope", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --font-body: "Outfit", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -333,9 +333,10 @@ main { max-width: 1376px; margin: 0 auto; padding: 0 28px; }
 .trace-detail b.verified, .trace-detail b.ready { color: var(--green); }
 .trace-detail b.blocked { color: var(--red); }
 .payment-dock { display: flex; min-height: 96px; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 16px; background: #f0f4fb; border-top: 1px solid var(--line); }
-.payment-dock strong { display: block; margin: 5px 0 4px; color: var(--navy); font: 700 11px/1.2 var(--font-display); }
-.payment-dock small { display: block; color: var(--muted); font-size: 9px; }
-.payment-dock button { flex: 0 0 auto; min-height: 41px; padding: 0 13px; cursor: pointer; color: white; background: var(--brand); border: 1px solid var(--brand-deep); border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: .05em; transition: background .2s, transform .2s; }
+.payment-dock > div { min-width: 0; }
+.payment-dock strong { display: block; margin: 5px 0 4px; overflow-wrap: anywhere; color: var(--navy); font: 700 11px/1.2 var(--font-display); }
+.payment-dock small { display: block; overflow-wrap: anywhere; color: var(--muted); font-size: 9px; }
+.payment-dock button { flex: 0 0 auto; min-width: 142px; min-height: 41px; padding: 0 13px; cursor: pointer; color: white; background: var(--brand); border: 1px solid var(--brand-deep); border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: .05em; transition: background .2s, transform .2s; }
 .payment-dock button:hover:not(:disabled) { background: var(--brand-deep); }
 .payment-dock button:active:not(:disabled) { transform: translateY(1px); }
 .payment-dock button:disabled { cursor: not-allowed; color: #8190a6; background: #dce3ed; border-color: #c6d0df; }
@@ -380,6 +381,7 @@ footer { display: flex; min-height: 82px; align-items: center; justify-content: 
   .mission-panel { grid-template-columns: 1fr; gap: 38px; min-height: 0; padding: 52px 0 38px; }
   .mission-copy h1 { font-size: clamp(3rem, 14.5vw, 4.25rem); }
   .mission-copy p { font-size: 14px; }
+  .mandate-console textarea { font-size: 16px; }
   .mission-action { padding: 18px; border-radius: 9px; }
   .mission-action::before { inset: -24px -14px 55% 35%; }
   .proof-flow span { padding-inline: 5px; }

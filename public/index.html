@@ -11,7 +11,7 @@
   <title>Vowgate — The mandate firewall for agentic commerce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -87,12 +87,12 @@
           </header>
           <label for="intent-text">Customer instruction</label>
           <textarea id="intent-text" rows="4">Buy one dimmable graphite desk light under ₹3,000. No substitutions. Deliver by Friday.</textarea>
-          <button class="secondary-button" id="interpret-intent" type="button">INTERPRET CONSTRAINTS</button>
+          <button class="secondary-button" id="interpret-intent" type="button">SIGN PURCHASE MANDATE</button>
           <div class="constraint-stack" id="constraints">
-            <div><span>SPEND CEILING</span><strong>₹3,000</strong></div>
-            <div><span>ITEM</span><strong>1 × TASK LIGHT</strong></div>
-            <div><span>REQUIRED</span><strong>GRAPHITE · DIMMABLE</strong></div>
-            <div><span>SUBSTITUTION</span><strong>PROHIBITED</strong></div>
+            <div><span>SPEND CEILING</span><strong id="constraint-spend">₹3,000</strong></div>
+            <div><span>ITEM</span><strong id="constraint-item">1 × TASK LIGHT</strong></div>
+            <div><span>REQUIRED</span><strong id="constraint-required">GRAPHITE · DIMMABLE</strong></div>
+            <div><span>SUBSTITUTION</span><strong id="constraint-substitution">PROHIBITED</strong></div>
           </div>
           <div class="mandate-seal">
             <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 35 9v10c0 9-6 15-15 18C11 34 5 28 5 19V9zM13 20l5 5 10-11"/></svg>
@@ -144,13 +144,13 @@
               <p>Run the pressure suite or select a scenario to inspect its decision chain.</p>
             </div>
           </div>
-          <div class="payment-dock">
+          <div class="payment-dock" aria-live="polite">
             <div>
-              <span>AUTHORIZED ORDER</span>
+              <span id="payment-stage">AUTHORIZED ORDER</span>
               <strong id="order-state">WAITING FOR POLICY PASS</strong>
               <small id="order-id">Razorpay test order is created only on explicit command.</small>
             </div>
-            <button id="create-order" type="button" disabled>CREATE TEST ORDER</button>
+            <button id="create-order" type="button" disabled>PAY WITH RAZORPAY</button>
           </div>
         </article>
       </section>

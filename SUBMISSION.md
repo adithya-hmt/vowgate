@@ -6,7 +6,7 @@ Track 1: AI Growth & Agentic Commerce
 
 ## One-line pitch
 
-Vowgate is the mandate firewall for agentic commerce: it lets AI choose, but requires signed customer intent and deterministic policy proof before Razorpay can create an order.
+Vowgate is the mandate firewall for agentic commerce: it lets AI choose, but requires signed customer intent and deterministic policy proof before Razorpay Checkout can open.
 
 ## Problem
 
@@ -20,8 +20,9 @@ Vowgate separates interpretation from authorization:
 2. Vowgate signs an expiring Open Checkout Mandate.
 3. A typed catalog produces checkout evidence and a bound Payment Mandate.
 4. Deterministic gates verify signature, expiry, merchant, catalog version, stock, attributes, price, budget, checkout hash, and single use.
-5. Only a policy pass can create a Razorpay test order.
-6. Every pass or refusal appears in a commerce flight recorder.
+5. Only a policy pass can create a Razorpay test order and open Standard Checkout.
+6. The server verifies the returned payment signature before the UI records success.
+7. Every pass or refusal appears in a commerce flight recorder.
 
 ## Demonstrated result
 
@@ -37,13 +38,13 @@ Gemini 2.5 Flash Lite performs structured intent extraction only. It never autho
 
 ## Razorpay usage
 
-Vowgate creates Razorpay Orders in test mode through either direct test credentials or the locally authenticated Razorpay CLI. It also validates webhook signatures against the raw request body and deduplicates event IDs.
+With direct `rzp_test_` credentials, Vowgate creates a Razorpay Order, opens Standard Checkout, and verifies the returned payment signature on the server. The authenticated Razorpay CLI remains an order-only fallback. Live key IDs are refused. Webhook signatures are validated against the raw request body and event IDs are deduplicated.
 
 ## What broke and how it recovered
 
 The first concept was an AI failed-payment recovery tool. Research showed that its core retry behavior overlapped Razorpay's native capabilities and existing recovery products, so it did not clear the problem-taste bar. I stopped building it and pivoted to the harder unresolved boundary: proving that an AI-selected checkout still matches the customer's authority when payment begins.
 
-The replacement exposed a second risk: concurrent requests could create the same Razorpay order twice. Vowgate now caches the in-flight creation promise by Payment Mandate ID, removes failed attempts so they can be retried, and keeps a regression test that sends two concurrent requests and proves only one order is created.
+The replacement exposed a second risk: concurrent requests could create the same Razorpay order twice. Vowgate now caches the in-flight creation promise by mandate ID, releases a failed redemption for a controlled retry, and keeps a regression test that sends two concurrent requests and proves only one order is created.
 
 ## Distinctive technical moment
 

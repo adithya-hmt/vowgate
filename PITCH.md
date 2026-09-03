@@ -10,7 +10,7 @@ Show the hero and point to **Intent → Mandate → Razorpay**.
 
 “This customer authorized one dimmable graphite task light under ₹3,000, with no substitutions. Gemini may translate that sentence into structure, but the model never decides whether money moves. Vowgate signs the boundary, hashes the checkout evidence, and applies deterministic policy gates.”
 
-Click **Interpret constraints**. Point out the spend ceiling, required attributes, and substitution rule.
+Click **Sign purchase mandate**. Point out the spend ceiling, required attributes, and substitution rule.
 
 ## 1:15–2:20 — Pressure suite
 
@@ -26,19 +26,19 @@ Select **Payment mandate replay**.
 
 “The first redemption consumes the mandate before order creation. The second presentation is refused as `MANDATE_REPLAY`. The flight recorder does not just say no; it shows which evidence passed, where authorization stopped, and why.”
 
-## 3:10–3:50 — Real Razorpay test order
+## 3:10–3:50 — Razorpay test Checkout
 
-Select **Authorized purchase**, then click **Create test order**.
+Select **Authorized purchase**, click **Pay with Razorpay**, and complete the test Checkout.
 
-“This is not a mocked success screen. Vowgate uses my authenticated Razorpay CLI in test mode and returns the real order ID. Concurrent requests for this same Payment Mandate deduplicate to one order.”
+“This is not a mocked success screen. Vowgate creates the Razorpay test order only after authorization, opens Standard Checkout, and verifies the returned payment signature on the server. Concurrent requests for the same mandate still resolve to one order.”
 
-Show the `RAZORPAY TEST CLI` mode in the status bar and the created order ID.
+Show the `RAZORPAY TEST CHECKOUT` mode, the Checkout handoff, and the `PAYMENT_VERIFIED` result in the flight recorder.
 
 ## 3:50–4:30 — Architecture
 
 Show `ARCHITECTURE.md`.
 
-“The trust boundary is deliberate: AI interprets, policy authorizes. Catalog descriptions never enter system instructions. The signed mandate expires, the checkout is hash-bound, and redemption is single use. Webhooks are verified against the raw body and event IDs are deduplicated.”
+“The trust boundary is deliberate: AI interprets, policy authorizes. Catalog descriptions never enter system instructions. The signed mandate expires, the checkout is hash-bound, and redemption is single use. The public test key can reach the browser, but order creation and signature verification keep the secret server-side. Webhooks are verified against the raw body and event IDs are deduplicated.”
 
 ## 4:30–5:00 — Honest close
 
