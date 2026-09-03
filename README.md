@@ -8,6 +8,12 @@ Vowgate turns customer intent into signed purchase authority, pressure-tests eve
 
 ![Vowgate product](docs/vowgate-product.png)
 
+## Screenshots
+
+![Desktop pressure suite](docs/screenshots/vowgate-desktop.png)
+
+![Mobile layout](docs/screenshots/vowgate-mobile.png)
+
 ## Why it matters
 
 AI can interpret what a customer wants, but it should not decide whether money moves. Vowgate keeps the model outside authorization and produces an inspectable reason for every approval or refusal.
