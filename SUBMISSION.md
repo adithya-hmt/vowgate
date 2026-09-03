@@ -39,6 +39,12 @@ Gemini 2.5 Flash Lite performs structured intent extraction only. It never autho
 
 Vowgate creates Razorpay Orders in test mode through either direct test credentials or the locally authenticated Razorpay CLI. It also validates webhook signatures against the raw request body and deduplicates event IDs.
 
+## What broke and how it recovered
+
+The first concept was an AI failed-payment recovery tool. Research showed that its core retry behavior overlapped Razorpay's native capabilities and existing recovery products, so it did not clear the problem-taste bar. I stopped building it and pivoted to the harder unresolved boundary: proving that an AI-selected checkout still matches the customer's authority when payment begins.
+
+The replacement exposed a second risk: concurrent requests could create the same Razorpay order twice. Vowgate now caches the in-flight creation promise by Payment Mandate ID, removes failed attempts so they can be retried, and keeps a regression test that sends two concurrent requests and proves only one order is created.
+
 ## Distinctive technical moment
 
 The Payment Mandate replay scenario consumes a single-use mandate, presents it again, and visibly refuses the second redemption with `MANDATE_REPLAY`. This turns a subtle protocol risk into an inspectable demo.
