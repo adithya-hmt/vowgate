@@ -11,6 +11,6 @@
     "check": "node --check local.js && node --check lib/http.js && node --check public/app.js && node --test"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   }
 }

@@ -24,7 +24,7 @@ AI can interpret what a customer wants, but it should not decide whether money m
 
 ## Run
 
-Requires Node.js 20+.
+Requires Node.js 24+.
 
 ```bash
 cp .env.example .env
