@@ -16,12 +16,19 @@ const elements = {
   paymentStage: $("#payment-stage"),
   intentButton: $("#interpret-intent"),
   intentText: $("#intent-text"),
-  constraintSpend: $("#constraint-spend"),
   constraintItem: $("#constraint-item"),
+  constraintItemPrice: $("#constraint-item-price"),
+  constraintOrderTotal: $("#constraint-order-total"),
   constraintRequired: $("#constraint-required"),
   constraintSubstitution: $("#constraint-substitution"),
+  constraintDelivery: $("#constraint-delivery"),
+  constraintMerchant: $("#constraint-merchant"),
+  constraintCatalog: $("#constraint-catalog"),
+  approvalState: $("#approval-state"),
+  mandateStatus: $("#mandate-status"),
 };
 
+let authorizationReview;
 let openMandate;
 let scenarioAuthorized = false;
 let checkoutScript;
@@ -70,15 +77,15 @@ function syncOrderEligibility() {
   const eligible = scenarioAuthorized && openMandate;
   elements.orderButton.disabled = !eligible;
   if (eligible) {
-    elements.paymentStage.textContent = "AUTHORIZED CHECKOUT";
-    elements.orderState.textContent = "POLICY PASS — CHECKOUT READY";
-    elements.orderId.textContent = "The signed mandate will be bound to one Razorpay test order.";
-    elements.orderButton.textContent = "PAY WITH RAZORPAY";
+    elements.paymentStage.textContent = "CHECKOUT AUTHORIZATION APPROVED";
+    elements.orderState.textContent = "POLICY PASS — HUMAN CHECKOUT READY";
+    elements.orderId.textContent = "The approved mandate will be bound to one exact Razorpay test order.";
+    elements.orderButton.textContent = "OPEN RAZORPAY CHECKOUT";
   } else if (scenarioAuthorized) {
-    elements.paymentStage.textContent = "SIGNED MANDATE REQUIRED";
-    elements.orderState.textContent = "INTERPRET THE PURCHASE FIRST";
-    elements.orderId.textContent = "Checkout stays locked until the customer instruction becomes a signed mandate.";
-    elements.orderButton.textContent = "WAITING FOR MANDATE";
+    elements.paymentStage.textContent = "CUSTOMER APPROVAL REQUIRED";
+    elements.orderState.textContent = authorizationReview ? "APPROVE THE NORMALIZED LIMITS" : "NORMALIZE THE INSTRUCTION FIRST";
+    elements.orderId.textContent = "Model output cannot authorize checkout until the reviewed constraints are explicitly activated.";
+    elements.orderButton.textContent = "WAITING FOR APPROVAL";
   }
 }
 
@@ -165,7 +172,7 @@ function openCheckout(order) {
             evidence: order.evidence,
           },
         });
-        elements.trace.append(traceStep({ stage: "RAZORPAY", status: "verified", detail: "Checkout signature matched the authorized test order." }));
+        elements.trace.append(traceStep({ stage: "PAYMENT VERIFICATION", status: "verified", detail: "Razorpay signature matched server-side. ORDER_CREATED → PAYMENT_VERIFIED." }));
         elements.traceCode.textContent = payment.code;
         elements.traceCode.style.color = "var(--green)";
         elements.paymentStage.textContent = "VERIFIED PAYMENT";
@@ -214,11 +221,11 @@ function openCheckout(order) {
 
 elements.runSuite.addEventListener("click", async () => {
   setBusy(elements.runSuite, true, "Running 6 scenarios…");
-  elements.runStatus.textContent = "Applying catalog drift, malicious text, substitutions, stale stock, and replay pressure.";
+  elements.runStatus.textContent = "Applying malicious prose, substitution, final-total drift, hash tampering, and replay pressure.";
   try {
     const suite = await api("/api/suite", { method: "POST" });
     renderSuite(suite);
-    elements.runStatus.textContent = `${suite.metrics.blockedThreats} threats stopped. ${suite.metrics.unsafeTransactions} unsafe payments escaped.`;
+    elements.runStatus.textContent = `${suite.metrics.blockedThreats} threats stopped. ${suite.metrics.unsafeTransactions} unsafe checkouts escaped.`;
   } catch (error) {
     elements.runStatus.textContent = `Suite failed: ${error.message}`;
   } finally {
@@ -242,32 +249,69 @@ $$(".scenario-row").forEach((row) => row.addEventListener("click", async () => {
 }));
 
 elements.intentText.addEventListener("input", () => {
+  authorizationReview = undefined;
   openMandate = undefined;
+  elements.intentButton.disabled = false;
+  elements.intentButton.textContent = "NORMALIZE FOR REVIEW";
+  elements.mandateStatus.textContent = "NOT ACTIVE";
+  elements.approvalState.innerHTML = "Review normalized limits<br><b>MANDATE NOT ACTIVE</b>";
   syncOrderEligibility();
 });
 
+function showAuthorizationReview(review) {
+  const constraints = review.constraints;
+  elements.constraintItem.textContent = `${constraints.quantity} × ${constraints.category.replaceAll("-", " ").toUpperCase()}`;
+  elements.constraintItemPrice.textContent = `₹${(constraints.maxItemPrice / 100).toLocaleString("en-IN")}`;
+  elements.constraintOrderTotal.textContent = `₹${(constraints.maxOrderTotal / 100).toLocaleString("en-IN")} · ALL CHARGES`;
+  elements.constraintRequired.textContent = Object.entries(constraints.requiredAttributes)
+    .map(([key, value]) => `${key}=${value}`).join(" · ").toUpperCase();
+  elements.constraintSubstitution.textContent = constraints.substitutionPolicy.toUpperCase();
+  elements.constraintDelivery.textContent = constraints.deliveryDeadline;
+  elements.constraintMerchant.textContent = review.merchantScope.allowedMerchantIds.join(", ").replace("merchant_", "").toUpperCase();
+  elements.constraintCatalog.textContent = review.catalogVersion.toUpperCase();
+  elements.mandateStatus.textContent = "AWAITING APPROVAL";
+  elements.approvalState.innerHTML = `Expires ${new Date(review.mandateExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<br><b>REVIEW, THEN ACTIVATE</b>`;
+  elements.trace.replaceChildren(
+    traceStep({ stage: "NORMALIZED AUTHORIZATION", status: "ready", detail: `${constraints.quantity} × ${constraints.category}; item ≤ ₹${constraints.maxItemPrice / 100}; final total ≤ ₹${constraints.maxOrderTotal / 100}.` }),
+    traceStep({ stage: "MERCHANT + CATALOG", status: "verified", detail: `${review.merchantScope.allowedMerchantIds.join(", ")} · ${review.catalogVersion}.` }, 1),
+    traceStep({ stage: "CUSTOMER APPROVAL", status: "ready", detail: "Model output is not active authority. Review these exact limits and activate them explicitly." }, 2),
+  );
+  elements.traceCode.textContent = "AWAITING_APPROVAL";
+  elements.traceCode.style.color = "var(--brand-deep)";
+}
+
 elements.intentButton.addEventListener("click", async () => {
-  const original = elements.intentButton.textContent;
-  setBusy(elements.intentButton, true, "SIGNING MANDATE…");
+  setBusy(elements.intentButton, true, authorizationReview ? "ACTIVATING MANDATE…" : "NORMALIZING…");
   try {
-    const response = await api("/api/intent", { method: "POST", body: { text: elements.intentText.value } });
-    const intent = response.intent;
+    if (!authorizationReview) {
+      const response = await api("/api/intent", { method: "POST", body: { text: elements.intentText.value } });
+      authorizationReview = response.authorizationReview;
+      showAuthorizationReview(authorizationReview);
+      elements.intentButton.textContent = "APPROVE & ACTIVATE MANDATE";
+      elements.intentButton.disabled = false;
+      syncOrderEligibility();
+      return;
+    }
+
+    const response = await api("/api/mandate", { method: "POST", body: { authorizationReview } });
     openMandate = response.openMandate;
-    elements.constraintSpend.textContent = `₹${(intent.maxAmount / 100).toLocaleString("en-IN")}`;
-    elements.constraintItem.textContent = `${intent.quantity} × ${intent.category.replaceAll("-", " ").toUpperCase()}`;
-    elements.constraintRequired.textContent = `${intent.requiredAttributes.finish.toUpperCase()} · ${intent.requiredAttributes.dimmable ? "DIMMABLE" : "FIXED"}`;
-    elements.constraintSubstitution.textContent = intent.allowSubstitutions ? "ALLOWED" : "PROHIBITED";
-    elements.intentButton.textContent = `SIGNED / ${intent.mode.toUpperCase()}`;
+    elements.mandateStatus.textContent = "APPROVED / ACTIVE";
+    elements.approvalState.innerHTML = `Approved until ${new Date(openMandate.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<br><b>15 MIN · SINGLE USE</b>`;
+    elements.intentButton.textContent = "MANDATE ACTIVE / APPROVED";
+    elements.trace.append(traceStep({ stage: "MANDATE STATE", status: "verified", detail: "Customer activation recorded. Server-signed Open Checkout Mandate is now active." }, 3));
+    elements.traceCode.textContent = "MANDATE_ACTIVE";
+    elements.traceCode.style.color = "var(--green)";
     syncOrderEligibility();
   } catch (error) {
+    authorizationReview = undefined;
     openMandate = undefined;
     elements.intentButton.textContent = error.message;
     elements.intentButton.focus();
+    setTimeout(() => { elements.intentButton.textContent = "NORMALIZE FOR REVIEW"; }, 3000);
     syncOrderEligibility();
   } finally {
-    elements.intentButton.disabled = false;
+    elements.intentButton.disabled = Boolean(openMandate);
     elements.intentButton.setAttribute("aria-busy", "false");
-    setTimeout(() => { elements.intentButton.textContent = original; }, 3000);
   }
 });
 
@@ -275,6 +319,10 @@ elements.orderButton.addEventListener("click", async () => {
   setBusy(elements.orderButton, true, "AUTHORIZING…");
   try {
     const order = await api("/api/order", { method: "POST", body: { openMandate } });
+    elements.trace.replaceChildren(...order.authorizationTrace.map(traceStep));
+    elements.trace.append(traceStep({ stage: "MANDATE STATE", status: "verified", detail: `RESERVED → ORDER_CREATED · checkout ${order.checkoutFingerprint}….` }, order.authorizationTrace.length));
+    elements.traceCode.textContent = order.mandateState;
+    elements.traceCode.style.color = "var(--green)";
     elements.orderId.textContent = `${order.id} · ₹${(order.amount / 100).toLocaleString("en-IN")} · ${order.status}`;
 
     if (!order.checkoutKey) {

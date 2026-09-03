@@ -2,17 +2,25 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
 import {
+  activateOpenMandate,
+  authorize,
   baseCatalog,
+  canonicalCheckoutBytes,
   chooseProduct,
-  createOpenMandate,
+  createAuthorizationReview,
+  createCheckout,
   createOrderEvidence,
+  createPaymentMandate,
   demoIntent,
-  RedemptionLedger,
+  hashCheckout,
+  MandateStateStore,
   runMandate,
   runScenario,
   runSuite,
+  verifyAuthorizationReview,
   verifyOpenMandate,
   verifyOrderEvidence,
+  verifyPaymentMandate,
 } from "../lib/vowgate.js";
 import { interpretIntent } from "../lib/intent.js";
 import {
@@ -24,74 +32,288 @@ import {
 import { EventLedger, verifyWebhookSignature } from "../lib/webhook.js";
 
 const now = Date.UTC(2026, 7, 1, 12);
+const secret = "test-signing-secret";
 
-test("selects the one catalog item that satisfies explicit intent", () => {
+function policyInput(intent = demoIntent) {
+  const catalog = structuredClone(baseCatalog);
+  const review = createAuthorizationReview(intent, { now, secret, id: "test-review" });
+  const openMandate = activateOpenMandate(review, { now, secret });
+  const selectedProduct = structuredClone(chooseProduct(openMandate.constraints, catalog) || catalog.products[0]);
+  const checkout = createCheckout(selectedProduct, catalog, openMandate);
+  const paymentMandate = createPaymentMandate(checkout, openMandate, { now, secret, id: "test-payment" });
+  return { catalog, selectedProduct, checkout, openMandate, paymentMandate, secret, ledger: new MandateStateStore(), now };
+}
+
+function rebind(input) {
+  input.checkout.hash = hashCheckout(input.checkout);
+  input.paymentMandate = createPaymentMandate(input.checkout, input.openMandate, { now, secret, id: "test-payment" });
+  return input;
+}
+
+function decisionAfter(mutator) {
+  const input = policyInput();
+  mutator(input);
+  return authorize(input);
+}
+
+test("normalizes intent for explicit approval before issuing a mandate", () => {
+  const review = createAuthorizationReview(demoIntent, { now, secret, id: "review-1" });
+  assert.equal(review.constraints.maxItemPrice, 300000);
+  assert.equal(review.constraints.maxOrderTotal, 300000);
+  assert.equal(review.constraints.maxQuantity, 1);
+  assert.equal(review.constraints.deliveryDeadline, "2026-08-07");
+  assert.deepEqual(review.merchantScope.allowedMerchantIds, ["merchant_nightswitch"]);
+  assert.equal(review.catalogVersion, baseCatalog.version);
+  assert.equal(verifyAuthorizationReview(review, secret), true);
+
+  const mandate = activateOpenMandate(review, { now: now + 1_000, secret });
+  assert.deepEqual(mandate.constraints, review.constraints);
+  assert.equal(mandate.authorizationId, review.id);
+  assert.equal(mandate.approvedAt, now + 1_000);
+});
+
+test("refuses activation when normalized authorization was modified after review", () => {
+  const review = createAuthorizationReview(demoIntent, { now, secret, id: "review-2" });
+  review.constraints.maxOrderTotal += 1;
+  assert.equal(verifyAuthorizationReview(review, secret), false);
+  assert.throws(() => activateOpenMandate(review, { now, secret }), /review is invalid/);
+});
+
+test("hashes a fixed-order canonical checkout representation", () => {
+  const checkout = {
+    fees: 0,
+    shipping: 0,
+    tax: 0,
+    total: 249900,
+    subtotal: 249900,
+    currency: "INR",
+    catalogVersion: "catalog_1",
+    merchantId: "merchant_1",
+    id: "checkout_1",
+    type: "vowgate.checkout.v1",
+    deliveryBy: "2026-08-03",
+    items: [{ unitPrice: 249900, quantity: 1, sku: "SKU-1" }],
+  };
+  assert.equal(canonicalCheckoutBytes(checkout).toString(), '{"type":"vowgate.checkout.v1","id":"checkout_1","merchantId":"merchant_1","catalogVersion":"catalog_1","items":[{"sku":"SKU-1","quantity":1,"unitPrice":249900}],"currency":"INR","subtotal":249900,"tax":0,"shipping":0,"fees":0,"total":249900,"deliveryBy":"2026-08-03"}');
+  assert.equal(hashCheckout(checkout), "b640e37f906c9b4aeb4da26dd64c8c839a81119f9f0f9a46b0475efc95fc11c9");
+});
+
+test("selects only a product matching policy-authoritative fields", () => {
   assert.equal(chooseProduct(demoIntent, baseCatalog).sku, "NS-L01");
 });
 
-test("signs and verifies an open checkout mandate", () => {
-  const mandate = createOpenMandate(demoIntent, { now, secret: "test", id: "1" });
-  assert.equal(verifyOpenMandate(mandate, "test"), true);
-  mandate.constraints.maxAmount += 1;
-  assert.equal(verifyOpenMandate(mandate, "test"), false);
+test("signs the approved Open Checkout and exact Payment Mandates", () => {
+  const input = policyInput();
+  assert.equal(verifyOpenMandate(input.openMandate, secret), true);
+  assert.equal(verifyPaymentMandate(input.paymentMandate, secret), true);
+  input.paymentMandate.checkoutHash = "0".repeat(64);
+  assert.equal(verifyPaymentMandate(input.paymentMandate, secret), false);
 });
 
-test("signs stateless order evidence for serverless payment verification", () => {
-  const order = { id: "order_test", amount: 249900, currency: "INR", mode: "razorpay-test" };
-  const mandate = { id: "payment_test", expiresAt: now + 60_000 };
-  const evidence = createOrderEvidence(order, mandate, "test");
-  assert.equal(verifyOrderEvidence(evidence, "test"), true);
-  evidence.amount += 1;
-  assert.equal(verifyOrderEvidence(evidence, "test"), false);
+test("authorizes a valid approved checkout", () => {
+  const result = authorize(policyInput());
+  assert.equal(result.decision, "authorized");
+  assert.equal(result.code, "CHECKOUT_AUTHORIZED");
 });
 
-test("passes a valid purchase and blocks every adversarial scenario", () => {
-  const suite = runSuite({ now, secret: "test" });
+test("rejects an invalid HMAC", () => {
+  const result = decisionAfter((input) => { input.openMandate.signature = "invalid"; });
+  assert.equal(result.code, "MANDATE_SIGNATURE_INVALID");
+});
+
+test("rejects an expired mandate", () => {
+  const input = policyInput();
+  input.now = input.openMandate.expiresAt + 1;
+  assert.equal(authorize(input).code, "MANDATE_EXPIRED");
+});
+
+test("rejects a category mismatch", () => {
+  const result = decisionAfter((input) => { input.catalog.products[0].category = "timer"; });
+  assert.equal(result.code, "CATEGORY_MISMATCH");
+});
+
+test("rejects a required attribute mismatch", () => {
+  const result = decisionAfter((input) => { input.catalog.products[0].attributes.finish = "silver"; });
+  assert.equal(result.code, "ATTRIBUTE_MISMATCH");
+  assert.match(result.detail, /Expected finish: graphite; observed: silver/);
+});
+
+test("rejects a forbidden substitution", () => {
+  const result = decisionAfter((input) => { input.selectedProduct = structuredClone(input.catalog.products[1]); });
+  assert.equal(result.code, "SUBSTITUTION_PROHIBITED");
+});
+
+test("rejects quantity above the approved exact quantity", () => {
+  const result = decisionAfter((input) => {
+    input.checkout.items[0].quantity = 2;
+    input.checkout.subtotal *= 2;
+    input.checkout.total *= 2;
+    rebind(input);
+  });
+  assert.equal(result.code, "QUANTITY_EXCEEDED");
+});
+
+test("rejects an item price above the approved item ceiling", () => {
+  const result = decisionAfter((input) => {
+    input.catalog.products[0].price = 310000;
+    input.selectedProduct.price = 310000;
+    input.checkout.items[0].unitPrice = 310000;
+    input.checkout.subtotal = 310000;
+    input.checkout.total = 310000;
+    rebind(input);
+  });
+  assert.equal(result.code, "ITEM_PRICE_EXCEEDED");
+});
+
+test("rejects a final payable total above the approved order ceiling", () => {
+  const result = decisionAfter((input) => {
+    input.catalog.products[0].charges.shipping = 80000;
+    input.checkout.shipping = 80000;
+    input.checkout.total += 80000;
+    rebind(input);
+  });
+  assert.equal(result.code, "ORDER_TOTAL_EXCEEDED");
+});
+
+test("rejects a currency mismatch", () => {
+  const result = decisionAfter((input) => {
+    input.checkout.currency = "USD";
+    rebind(input);
+  });
+  assert.equal(result.code, "CURRENCY_MISMATCH");
+});
+
+test("rejects a merchant outside the explicit allowlist", () => {
+  const result = decisionAfter((input) => {
+    input.catalog.merchantId = "merchant_other";
+    input.checkout.merchantId = "merchant_other";
+    rebind(input);
+  });
+  assert.equal(result.code, "MERCHANT_NOT_ALLOWED");
+});
+
+test("rejects an unsupported catalog version", () => {
+  const result = decisionAfter((input) => {
+    input.catalog.version = "catalog_other";
+    input.checkout.catalogVersion = "catalog_other";
+    rebind(input);
+  });
+  assert.equal(result.code, "CATALOG_VERSION_MISMATCH");
+});
+
+test("rejects unavailable inventory", () => {
+  const result = decisionAfter((input) => { input.catalog.products[0].stock = 0; });
+  assert.equal(result.code, "OUT_OF_STOCK");
+});
+
+test("rejects a trusted fulfillment promise after the approved deadline", () => {
+  const result = decisionAfter((input) => {
+    input.catalog.products[0].fulfillment.deliveryLeadDays = 8;
+    input.checkout.deliveryBy = "2026-08-09";
+    rebind(input);
+  });
+  assert.equal(result.code, "DELIVERY_DEADLINE_MISSED");
+});
+
+test("rejects checkout tampering with distinct authorized and observed fingerprints", () => {
+  const result = decisionAfter((input) => {
+    input.checkout.fees += 100;
+    input.checkout.total += 100;
+  });
+  assert.equal(result.code, "CHECKOUT_HASH_MISMATCH");
+  assert.match(result.detail, /Authorized checkout fingerprint.*observed/);
+});
+
+test("atomically grants only one concurrent Payment Mandate reservation", async () => {
+  const store = new MandateStateStore();
+  store.issue("payment_concurrent");
+  const attempts = await Promise.all([
+    Promise.resolve().then(() => store.reserve("payment_concurrent")),
+    Promise.resolve().then(() => store.reserve("payment_concurrent")),
+  ]);
+  assert.equal(attempts.filter(Boolean).length, 1);
+  assert.equal(store.get("payment_concurrent").state, "RESERVED");
+
+  const input = policyInput();
+  assert.equal(authorize(input).decision, "authorized");
+  assert.equal(authorize(input).code, "MANDATE_ALREADY_CONSUMED");
+});
+
+test("tracks safe mandate state transitions and releases only failed reservations", () => {
+  const store = new MandateStateStore();
+  assert.equal(store.issue("payment_1"), true);
+  assert.equal(store.reserve("payment_1"), true);
+  assert.equal(store.release("payment_1"), true);
+  assert.equal(store.reserve("payment_1"), true);
+  assert.equal(store.orderCreated("payment_1", "order_1"), true);
+  assert.equal(store.paymentVerified("payment_1", "order_1", "pay_1"), true);
+  assert.equal(store.get("payment_1").state, "PAYMENT_VERIFIED");
+  assert.equal(store.release("payment_1"), false);
+});
+
+test("passes exactly six adversarial scenarios without an unsafe checkout", () => {
+  const suite = runSuite({ now, secret });
   assert.equal(suite.metrics.scenarios, 6);
   assert.equal(suite.metrics.passed, 6);
   assert.equal(suite.metrics.unsafeTransactions, 0);
   assert.equal(suite.metrics.blockedThreats, 5);
-  assert.equal(suite.runs.find((run) => run.id === "mandate-replay").code, "MANDATE_REPLAY");
+  assert.deepEqual(
+    Object.fromEntries(suite.runs.map((run) => [run.id, run.code])),
+    {
+      clean: "CHECKOUT_AUTHORIZED",
+      "catalog-injection": "CATEGORY_MISMATCH",
+      substitution: "SUBSTITUTION_PROHIBITED",
+      "order-total": "ORDER_TOTAL_EXCEEDED",
+      "checkout-tampering": "CHECKOUT_HASH_MISMATCH",
+      "mandate-replay": "MANDATE_ALREADY_CONSUMED",
+    },
+  );
 });
 
 test("uses an explicit fixture when no model key is configured", async () => {
   const intent = await interpretIntent(demoIntent.text, "");
   assert.equal(intent.mode, "verified-fixture");
+  assert.equal(intent.maxOrderTotal, 300000);
   await assert.rejects(() => interpretIntent("", ""), /Enter a purchase instruction/);
   await assert.rejects(() => interpretIntent("Buy anything", ""), /require GEMINI_API_KEY/);
 });
 
-test("authorizes a signed custom mandate and preserves quantity", () => {
-  const intent = { ...structuredClone(demoIntent), quantity: 2, maxAmount: 600000 };
-  const openMandate = createOpenMandate(intent, { now, secret: "test", id: "custom" });
-  const run = runMandate(openMandate, { now, secret: "test" });
+test("authorizes an approved custom quantity and includes all charges in total", () => {
+  const intent = { ...structuredClone(demoIntent), quantity: 2, maxItemPrice: 300000, maxOrderTotal: 600000 };
+  const review = createAuthorizationReview(intent, { now, secret, id: "custom" });
+  const openMandate = activateOpenMandate(review, { now, secret });
+  const run = runMandate(openMandate, { now, secret });
   assert.equal(run.result.decision, "authorized");
   assert.equal(run.checkout.items[0].quantity, 2);
-  assert.equal(run.checkout.amount, 499800);
+  assert.equal(run.checkout.subtotal, 499800);
+  assert.equal(run.checkout.total, 499800);
 });
 
-test("blocks a signed mandate with no matching catalog product", () => {
+test("blocks an approved mandate with no matching catalog product", () => {
   const intent = { ...structuredClone(demoIntent), requiredAttributes: { finish: "brass", dimmable: true } };
-  const openMandate = createOpenMandate(intent, { now, secret: "test", id: "no-match" });
-  assert.equal(runMandate(openMandate, { now, secret: "test" }).result.code, "NO_CATALOG_MATCH");
+  const review = createAuthorizationReview(intent, { now, secret, id: "no-match" });
+  const openMandate = activateOpenMandate(review, { now, secret });
+  assert.equal(runMandate(openMandate, { now, secret }).result.code, "NO_CATALOG_MATCH");
 });
 
-test("releases a consumed mandate after failed order creation", () => {
-  const ledger = new RedemptionLedger();
-  assert.equal(ledger.consume("payment_1"), true);
-  ledger.release("payment_1");
-  assert.equal(ledger.consume("payment_1"), true);
+test("signs stateless order evidence for serverless payment verification", () => {
+  const input = policyInput();
+  const order = { id: "order_test", amount: input.checkout.total, currency: "INR", mode: "razorpay-test" };
+  const evidence = createOrderEvidence(order, input.paymentMandate, secret);
+  assert.equal(verifyOrderEvidence(evidence, secret), true);
+  evidence.amount += 1;
+  assert.equal(verifyOrderEvidence(evidence, secret), false);
 });
 
 test("keeps Razorpay order creation simulated without credentials", async () => {
-  const run = runScenario("clean", { now, secret: "test" });
+  const run = runScenario("clean", { now, secret });
   const order = await createRazorpayOrder(run.checkout, run.paymentMandate.id, {});
   assert.equal(order.mode, "simulated");
   assert.equal(order.amount, 249900);
 });
 
 test("creates a test API order that can open Razorpay Checkout", async () => {
-  const run = runScenario("clean", { now, secret: "test" });
+  const run = runScenario("clean", { now, secret });
   const env = { RAZORPAY_KEY_ID: "rzp_test_example", RAZORPAY_KEY_SECRET: "secret" };
   const request = async () => ({
     ok: true,
@@ -103,7 +325,7 @@ test("creates a test API order that can open Razorpay Checkout", async () => {
 });
 
 test("refuses live Razorpay credentials", async () => {
-  const run = runScenario("clean", { now, secret: "test" });
+  const run = runScenario("clean", { now, secret });
   const env = { RAZORPAY_KEY_ID: "rzp_live_example", RAZORPAY_KEY_SECRET: "secret" };
   assert.equal(hasRazorpayApiConfig(env), false);
   await assert.rejects(() => createRazorpayOrder(run.checkout, run.paymentMandate.id, env), /test-mode credentials/);
@@ -116,7 +338,7 @@ test("verifies a Razorpay Checkout payment signature", () => {
 });
 
 test("creates an order through the configured Razorpay CLI", async () => {
-  const run = runScenario("clean", { now, secret: "test" });
+  const run = runScenario("clean", { now, secret });
   const exec = async (command, args) => {
     assert.equal(command, "razorpay");
     assert.deepEqual(args.slice(0, 4), ["orders", "create", "--amount", "249900"]);
@@ -126,7 +348,7 @@ test("creates an order through the configured Razorpay CLI", async () => {
   assert.equal(order.mode, "razorpay-cli");
 });
 
-test("deduplicates concurrent order creation for one payment mandate", async () => {
+test("deduplicates concurrent order creation for one Payment Mandate", async () => {
   const cache = new Map();
   let calls = 0;
   const create = async () => ({ id: `order_${++calls}` });

@@ -6,49 +6,55 @@ Track 1: AI Growth & Agentic Commerce
 
 ## One-line pitch
 
-Vowgate is the mandate firewall for agentic commerce: it lets AI choose, but requires signed customer intent and deterministic policy proof before Razorpay Checkout can open.
+Vowgate is the commerce authorization firewall for AI shopping agents: it turns interpreted intent into customer-approved, checkout-bound authority before Razorpay Standard Checkout may open.
 
 ## Problem
 
-An AI shopping agent can understand natural language while still making an unsafe purchase after a price change, substitution, stale inventory read, malicious catalog instruction, or replayed payment authorization. A fluent answer is not payment authority.
+A fluent model answer is not permission to spend. Price, quantity, charges, product attributes, delivery, merchant, or catalog state can change between an AI recommendation and checkout. Catalog prose can attack the agent, and valid authorization can be replayed concurrently.
 
 ## Solution
 
-Vowgate separates interpretation from authorization:
-
-1. Gemini extracts explicit constraints from customer language when configured.
-2. Vowgate signs an expiring Open Checkout Mandate.
-3. A typed catalog produces checkout evidence and a bound Payment Mandate.
-4. Deterministic gates verify signature, expiry, merchant, catalog version, stock, attributes, price, budget, checkout hash, and single use.
-5. Only a policy pass can create a Razorpay test order and open Standard Checkout.
-6. The server verifies the returned payment signature before the UI records success.
-7. Every pass or refusal appears in a commerce flight recorder.
+1. Gemini extracts explicit constraints but receives no order-creation capability.
+2. Vowgate presents a normalized authorization review with distinct item-price and final-total caps, exact quantity, required attributes, substitution rule, merchant allowlist, catalog snapshot, concrete delivery date, and expiration.
+3. A separate customer action activates an HMAC-signed Open Checkout Mandate containing exactly that reviewed structure.
+4. Typed catalog fields produce a canonical checkout with every represented payable amount and fulfillment promise. Free-form merchant text is non-authoritative.
+5. A signed, five-minute, single-use Payment Mandate binds the SHA-256 canonical checkout fingerprint.
+6. Central deterministic policy must pass before an atomic `ISSUED → RESERVED` transition permits Razorpay test-order creation.
+7. Razorpay Standard Checkout remains human-facing; the server verifies its returned payment signature before recording `PAYMENT_VERIFIED`.
+8. The Commerce Flight Recorder shows sanitized constraints, trusted facts, fingerprints, reason codes, and state transitions.
 
 ## Demonstrated result
 
-- 6/6 conformance scenarios behave as expected.
-- Five adversarial purchase attempts are blocked.
-- Zero unsafe attempts reach order creation.
-- The deployed valid path created Razorpay test order `order_TXeYi5b8pw7tLq` through the direct Test API.
-- Two requests for the same Payment Mandate both resolved to that one order.
+The exact six-scenario pressure suite produces:
+
+- 6/6 expected decisions
+- Five adversarial checkouts blocked
+- Zero unsafe checkouts reaching order creation
+- Prompt-injection prose ignored in favor of typed policy facts
+- `SUBSTITUTION_PROHIBITED` for a changed SKU
+- `ORDER_TOTAL_EXCEEDED` when shipping pushes the payable amount beyond authority
+- `CHECKOUT_HASH_MISMATCH` after fee tampering
+- `MANDATE_ALREADY_CONSUMED` on replay
+
+The valid path creates one Razorpay test order, opens Standard Checkout, and accepts success only after backend signature verification. A prior deployed valid path created test order `order_TXeYi5b8pw7tLq`; order IDs are test artifacts, not live transactions.
 
 ## AI usage
 
-Gemini 2.5 Flash Lite performs structured intent extraction only. It never authorizes payment. Without a Gemini key, the exact published demo instruction uses a clearly labelled verified fixture; arbitrary instructions fail closed.
+Gemini 2.5 Flash Lite performs schema-constrained intent extraction only. Its output is visibly inactive until the customer approves the normalized review. Without a Gemini key, only the exact published instruction uses a clearly labelled verified fixture; arbitrary instructions fail closed.
 
 ## Razorpay usage
 
-With direct `rzp_test_` credentials, Vowgate creates a Razorpay Order, opens Standard Checkout, and verifies the returned payment signature on the server. The authenticated Razorpay CLI remains an order-only fallback. Live key IDs are refused. Webhook signatures are validated against the raw request body and event IDs are deduplicated.
+With direct `rzp_test_` credentials, Vowgate creates a Razorpay Order only after policy authorization, opens human-facing Standard Checkout, and verifies the callback signature on the server. Live key IDs are refused. The authenticated Razorpay CLI remains an order-only fallback. The webhook endpoint validates the raw body signature and deduplicates event IDs when configured.
+
+## Trust and limitation
+
+The Vowgate backend, HMAC key, deterministic policy, and configured structured catalog authority form the trusted computing base. LLM output, agent reasoning, browser state, client checkout claims, and all free-form merchant content are untrusted. Typed catalog facts are trusted configuration, not independently proven truth.
+
+The current compare-and-set mandate state and webhook event ledger are process-local. They prove the state-machine design and same-process concurrency behavior; production serverless replay protection requires an atomic Redis or transactional database. The demo proves delegated shopping/checkout authorization plus server-side payment verification—not autonomous unattended fund movement or legal customer identity.
 
 ## What broke and how it recovered
 
-The first concept was an AI failed-payment recovery tool. Research showed that its core retry behavior overlapped Razorpay's native capabilities and existing recovery products, so it did not clear the problem-taste bar. I stopped building it and pivoted to the harder unresolved boundary: proving that an AI-selected checkout still matches the customer's authority when payment begins.
-
-The replacement exposed a second risk: concurrent requests could create the same Razorpay order twice. Vowgate now caches the in-flight creation promise by mandate ID, releases a failed redemption for a controlled retry, and keeps a regression test that sends two concurrent requests and proves only one order is created.
-
-## Distinctive technical moment
-
-The Payment Mandate replay scenario consumes a single-use mandate, presents it again, and visibly refuses the second redemption with `MANDATE_REPLAY`. This turns a subtle protocol risk into an inspectable demo.
+The first concept duplicated existing failed-payment recovery capabilities, so the project pivoted to the unresolved authorization boundary. The replacement then exposed duplicate-order risk. Vowgate first deduplicated in-flight creation and now reserves a signed Payment Mandate atomically before calling Razorpay, releases only pre-order failures, and retains established orders after Checkout abandonment.
 
 ## Links
 
@@ -59,4 +65,4 @@ The Payment Mandate replay scenario consumes a single-use mandate, presents it a
 
 ## Honesty boundary
 
-Nightswitch Supply, its catalog, and all benchmark results are synthetic. Vowgate is AP2-inspired, not AP2-certified. It moves no live money and is not affiliated with Razorpay.
+Nightswitch Supply, its catalog, and all evaluation data are synthetic. Vowgate is AP2-inspired, not AP2-certified, moves no live money, and is not affiliated with Razorpay.

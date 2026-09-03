@@ -1,47 +1,43 @@
-# Vowgate — Five-minute pitch
+# Vowgate — Three-minute judge demo
 
-## 0:00–0:35 — Hook
+## 0:00–0:25 — Problem
 
-“AI agents are getting good at choosing what to buy. But fluent intent is not payment authority. A price can drift, a product can be substituted, catalog text can attack the agent, and a payment mandate can be replayed. Vowgate is the mandate firewall for agentic commerce.”
+“AI can interpret what a customer wants, but interpretation is not permission to spend. A merchant can add charges, substitute an item, change fulfillment, inject instructions into catalog prose, tamper with checkout, or replay authority. Vowgate is the commerce authorization firewall between agent reasoning and checkout execution.”
 
-Show the hero and point to **Intent → Mandate → Razorpay**.
+Show the hero. Clarify that Razorpay Standard Checkout remains human-facing.
 
-## 0:35–1:15 — Product model
+## 0:25–0:55 — Explicit customer approval
 
-“This customer authorized one dimmable graphite task light under ₹3,000, with no substitutions. Gemini may translate that sentence into structure, but the model never decides whether money moves. Vowgate signs the boundary, hashes the checkout evidence, and applies deterministic policy gates.”
+Click **Normalize for review** once.
 
-Click **Sign purchase mandate**. Point out the spend ceiling, required attributes, and substitution rule.
+“Gemini—or this clearly labelled fixture—only translates language. Notice that the mandate is still inactive. Vowgate converts ‘under ₹3,000’ into separate ₹3,000 unit-price and final-payable-total caps, plus exact quantity, attributes, no substitutions, one merchant, one catalog snapshot, a concrete delivery date, and expiry.”
 
-## 1:15–2:20 — Pressure suite
+Click **Approve & activate mandate**.
+
+“This second customer action activates the server-signed Open Checkout Mandate. The signature seals exactly what was displayed; it does not claim to be customer identity or a legal signature.”
+
+## 0:55–1:45 — Six-scenario pressure suite
 
 Click **Run pressure suite**.
 
-“The valid purchase passes. Then Vowgate attacks the same flow with price drift, catalog prompt injection, a forbidden substitution, stale inventory, and Payment Mandate replay. Five threats stop. Zero unsafe payments escape.”
+“The valid checkout passes. Malicious catalog prose cannot override typed category facts. A changed SKU is denied as `SUBSTITUTION_PROHIBITED`. An ₹800 shipping charge makes the final payable total exceed authority. A post-authorization fee change produces different canonical checkout fingerprints. A second atomic reservation produces `MANDATE_ALREADY_CONSUMED`.”
 
-Pause on the three metrics. Emphasize that a safe refusal counts as success.
+Pause on **6/6**, **five threats stopped**, and **zero unsafe checkouts**. Select **Checkout hash tampering**, then **Payment Mandate replay**, and point to the concise Flight Recorder evidence.
 
-## 2:20–3:10 — Signature scenario
+## 1:45–2:30 — Razorpay test Checkout
 
-Select **Payment mandate replay**.
+Select **Authorized checkout**, then click **Open Razorpay Checkout**.
 
-“The first redemption consumes the mandate before order creation. The second presentation is refused as `MANDATE_REPLAY`. The flight recorder does not just say no; it shows which evidence passed, where authorization stopped, and why.”
+“Policy recomputes the SHA-256 fingerprint, reserves the signed five-minute Payment Mandate, and only then creates one Razorpay test order. The state advances from `ISSUED` to `RESERVED` to `ORDER_CREATED`. Razorpay still asks the human to complete Standard Checkout.”
 
-## 3:10–3:50 — Razorpay test Checkout
+Complete the test payment.
 
-Select **Authorized purchase**, click **Pay with Razorpay**, and complete the test Checkout.
+“The browser says only that payment returned. Vowgate labels it verified after the backend checks Razorpay's HMAC signature, then records `PAYMENT_VERIFIED`.”
 
-“This is not a mocked success screen. Vowgate creates the Razorpay test order only after authorization, opens Standard Checkout, and verifies the returned payment signature on the server. Concurrent requests for the same mandate still resolve to one order.”
+## 2:30–3:00 — Trust boundary and honest close
 
-Show the `RAZORPAY TEST CHECKOUT` mode, the Checkout handoff, and the `PAYMENT_VERIFIED` result in the flight recorder.
+“The model never authorizes checkout. Product descriptions never prove compliance. Vowgate trusts its backend, signing key, deterministic policy, configured structured catalog facts, and Razorpay's verified signature. Today the atomic state store is process-local, so production Vercel deployment still needs Redis or a transactional database for global replay guarantees.”
 
-## 3:50–4:30 — Architecture
+End with:
 
-Show `ARCHITECTURE.md`.
-
-“The trust boundary is deliberate: AI interprets, policy authorizes. Catalog descriptions never enter system instructions. The signed mandate expires, the checkout is hash-bound, and redemption is single use. The public test key can reach the browser, but order creation and signature verification keep the secret server-side. Webhooks are verified against the raw body and event IDs are deduplicated.”
-
-## 4:30–5:00 — Honest close
-
-“The merchant and evaluation data are synthetic, and Vowgate is AP2-inspired rather than AP2-certified. The current in-memory ledger is right for an inspectable buildathon demo; production would move consumption into a durable atomic store. Vowgate’s bet is simple: agentic commerce will scale only when every payment can prove why it was allowed.”
-
-End on the hero: **The mandate firewall for agentic commerce.**
+“Agentic commerce scales only when every checkout can prove what the customer approved, that the exact payable transaction still matches it, and that the authority has not already been used.”
